@@ -30,25 +30,25 @@ main::IO ()
 main = do
   args <- getArgs
   (pat,clean1) <- readGeneric (args!!0)
-  p <- getPeriod pat
+  (p,clean2) <- getPeriod pat
   putStrLn (show p)
   clean1
+  doAll clean2
 
 
-readFighter :: [Char]->IO (Fighter,IO ())
+readFighter :: [Char]->IO (Fighter, [IO ()] )
 readFighter name = do
   (pat,close) <- readGeneric name
   let tpat = Gr (trimGrid (gr pat))
   let h = length (gr tpat)
   let w = length ((gr tpat)!!0)
-  p <- getPeriod pat
-  return (  (Fighter tpat ((split '.' name)!!0) h w p ) , close)
+  (p,periodClean) <- getPeriod pat
+  return (  (Fighter tpat ((split '.' name)!!0) h w p ) , close:periodClean )
 
-getPeriod::Pattern -> IO Int
+getPeriod::Pattern -> IO (Int,[IO()])
 getPeriod pat = do
   (res,clean) <- (periodHelper pat (1,[]))
-  doAll clean
-  return res
+  return (res,clean)
 
 periodHelper::Pattern -> (Int,[IO ()]) -> IO (Int,[IO ()])
 periodHelper pat (n,clean_) = do
@@ -70,7 +70,6 @@ stepPattern :: Pattern -> Int -> IO (Pattern,[IO ()])
 stepPattern pat1 n = do
   names <- (getName 2)
   writeFile (names!!0) (rleHead ++ (rle pat1))
-  putStrLn (rle pat1)
   callCommand (concat ["bgolly -q -q -a Generations -m ",show(n)," -o ",(names!!1)," ",(names!!0)])
   (pat2,close) <- readGeneric (names!!1)
   let rm1 = callCommand ("del "++(names!!0))
