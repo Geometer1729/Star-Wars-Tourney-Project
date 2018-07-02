@@ -29,11 +29,17 @@ doAll = foldl (>>) (return())
 main::IO ()
 main = do
   args <- getArgs
+<<<<<<< HEAD
+  (fighter1,clean1) <- readFighter (args!!0)
+  putStrLn (show fighter1)
+  doAll clean1
+=======
   (pat,clean1) <- readGeneric (args!!0)
   (p,clean2) <- getPeriod pat
   putStrLn (show p)
   clean1
   doAll clean2
+>>>>>>> b0e660f8d16ee18eb9af13db9e8d5b48a2a861af
 
 
 readFighter :: [Char]->IO (Fighter, [IO ()] )
