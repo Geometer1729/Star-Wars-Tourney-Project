@@ -223,12 +223,12 @@ matShow dat = concat [ ((concat [(show(x)++" ") | x <- row]) ++ "\n") | row <- d
 dataToMC::[[Int]]->[Char]
 dataToMC dat = (matShow dat)
 
-gridToRle::[[Int]]->[Char]
-gridToRle dat = comp
-  where
-    comp = short tal
-    tal = tally uncomp
-    uncomp = concat [ [ch  x | x<- row] ++"$" | row <- dat] ++['!']
+gridToRle :: [[Int]] -> [Char]
+gridToRle grid = short $ tallyTheTally $ removeTrailingDeads $ tally $ do
+  (row,i) <- zip grid [1..]
+  let rowAsStr = map ch row
+  let endStr = if (i == length grid) then "!" else "$"
+  (++endStr) $ rowAsStr
 
 tally::(Eq a) => [a]->[(Int,a)]
 tally [] = []
@@ -240,11 +240,26 @@ rollingTally (x:xs) (n,c)
   | otherwise = (n,c): ( rollingTally xs (1,x) )
 rollingTally [] x = [x]
 
+tallyTheTally :: (Eq a) => [(Int,a)] -> [(Int,a)]
+tallyTheTally [] = []
+tallyTheTally (x:xs) = rollingTallyTheTally xs x
+
+rollingTallyTheTally :: (Eq a) => [(Int,a)] -> (Int,a) -> [(Int,a)]
+rollingTallyTheTally [] x = [x]
+rollingTallyTheTally ((n2,c2):xs) (n,c)
+  | c2 == c = rollingTallyTheTally xs (n+n2,c)
+  | otherwise = ((n,c):) $ rollingTallyTheTally xs (n2,c2)
+
+
 short:: [(Int,Char)] -> [Char]
 short ((n,c):ts)
   | n==1 = c:(short ts)
   | otherwise = concat [show(n),[c],short ts]
 short [] = []
+
+removeTrailingDeads :: [(Int,Char)] -> [(Int,Char)]
+removeTrailingDeads tal = map fst $ flip filter (zip tal $ (++[(0,'^')]) $ tail tal) $
+  \((_,ch1),(_,ch2)) -> not $ (ch2 `elem` "$!") && (ch1 == '.')
 
 ch::Int->Char
 ch 0 = '.'
