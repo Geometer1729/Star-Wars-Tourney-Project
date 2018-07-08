@@ -5,7 +5,8 @@ import Control.Monad
 import System.Environment
 import System.Directory
 import System.Process
-
+import Grid
+import CIO
 
 data Fighter = Fighter {
  cannon :: Pattern
@@ -14,6 +15,7 @@ data Fighter = Fighter {
 ,w :: Int
 ,p :: Int
 } deriving(Show)
+
 data Battle = Battle {
  zone :: Pattern
 ,fighterl :: Fighter
@@ -25,24 +27,20 @@ data Battle = Battle {
 doAll::[IO()] -> IO ()
 doAll = foldl (>>) (return())
 
-
 main::IO ()
-main = do
-  args <- getArgs
-  (fighter1,clean1) <- readFighter (args!!0)
-  putStrLn (show fighter1)
-  doAll clean1
+main = run (do
+  args <- vc getArgs
+  fighter1 <- readFighter (args!!0)
+  vc  (putStrLn (show fighter1) ) )
 
-
-
-readFighter :: [Char]->IO (Fighter, [IO ()] )
-readFighter name = do
+readFighter :: [Char]-> CIO Fighter
+readFighter name = C (do
   (pat,close) <- readGeneric name
   let tpat = Gr (trimGrid (gr pat))
   let h = length (gr tpat)
   let w = length ((gr tpat)!!0)
   (p,periodClean) <- getPeriod pat
-  return (  (Fighter tpat ((split '.' name)!!0) h w p ) , close:periodClean )
+  return (  (Fighter tpat ((split '.' name)!!0) h w p ) , close:periodClean ) )
 
 getPeriod::Pattern -> IO (Int,[IO()])
 getPeriod pat = do
@@ -63,8 +61,6 @@ testn pat n = do
   (new,clean) <- (stepPattern pat n)
   return ((new == pat) , clean)
 
-
-
 stepPattern :: Pattern -> Int -> IO (Pattern,[IO ()])
 stepPattern pat1 n = do
   names <- (getName 2)
@@ -82,74 +78,7 @@ getName count = do
   let valNames = [nm | nm <- candNames , not (elem nm files)] :: [[Char]]
   return (take count valNames)
 
-
-
 --bgolly -a Generations -m 10 -o test2.rle demoCannon.rle
-
-
-
-split:: (Eq a) => a -> [a] -> [[a]]
-split s xs = splithelper s [] xs
-  where
-    splithelper:: (Eq a) => a -> [a] -> [a] -> [[a]]
-    splithelper s temp (x:xs)
-      | (s == x) = temp : (splithelper s [] xs)
-      | otherwise = splithelper s (temp ++ [x] ) xs
-    splithelper _ temp [] = [temp]
-
-trimGrid::[[Int]] ->[[Int]]
-trimGrid = trimVert . trimHorz . roundOut
-  where
-    trimHorz::[[Int]] ->[[Int]]
-    trimHorz = transpose . trimVert . transpose
-    trimVert::[[Int]] ->[[Int]]
-    trimVert =   reverse . trimTop . reverse . trimTop
-    trimTop::[[Int]] ->[[Int]]
-    trimTop (x:xs)
-      |isZeros x = trimTop xs
-      |otherwise = (x:xs)
-    trimTop [] = []
-    isZeros::[Int] -> Bool
-    isZeros xs = and [x == 0 | x <- xs ]
-
-
-join2Grids::[[Int]] ->[[Int]] ->[[Int]]
-join2Grids g1 g2
-  | h1 > h2 = zipWith (++) g1 (extend g2 (h1-h2))
-  | otherwise = zipWith (++) (extend g1 (h2-h1)) g2
-  where
-    h1 = length g1
-    h2 = length g2
-extend::[[Int]] -> Int -> [[Int]]
-extend [] n = []
-extend g n = g ++ makeZeros (length (g!!0)) n
-makeZeros::Int->Int->[[Int]]
-makeZeros x y =  [[0 | _ <- [1..x]] |  _ <- [1..y] ]
-
-gridShow:: [[Int]] -> [Char]
-gridShow dat = concat [ ((concat [(show_(x)++" ") | x <- row]) ++ "\n") | row <- dat  ]
-  where
-    show_ 0 = "_"
-    show_ x = show(x)
-
-flipHz:: Pattern -> Pattern
-flipHz pat = Go (flipGhz (go pat))
-
-flipGhz::Golly -> Golly
-flipGhz (Empty) = Empty
-flipGhz (Block 1 (a:b:c:d:[])) = Block 1 [b,a,d,c]
-flipGhz (Node  n (a:b:c:d:[])) = Node  n (fmap flipGhz [b,a,d,c] )
-flipGhz x = error (show (x == Empty))
-
-hspacer::Int -> [[Int]]
-hspacer n = [ (take n [0]) ]
-
-pushUp::Int->[[Int]]->[[Int]]
-pushUp n grid = reverse (extend (reverse grid) n)
-
-joinGrids::[[[Int]]] -> [[Int]]
-joinGrids (g1:g2:gs) = joinGrids ((join2Grids g1 g2):gs)
-joinGrids (g1:[]) = g1
 
 battlePatterns::(Pattern,Pattern) -> [Pattern]
 battlePatterns (left,right) = concat [ [ Gr (joinGrids [(gr l),spacer,(gr r)]) | spacer <- spacers  ] | (l,r) <- boostlist] :: [Pattern]
@@ -158,7 +87,7 @@ battlePatterns (left,right) = concat [ [ Gr (joinGrids [(gr l),spacer,(gr r)]) |
     leftg = gr left ::[[Int]]
     hr = length rightg ::Int
     hl = length leftg :: Int
-    right_ = flipHz right :: Pattern
+    right_ = (patify flipHz) right :: Pattern
     boostlist = boosts (left,right) :: [(Pattern,Pattern)]
     spacers = [hspacer n | n <- [20..30]] :: [[[Int]]]
 
@@ -171,10 +100,6 @@ boosts (l,r)
     gL = gr l ::[[Int]]
     hr = length gR ::Int
     hl = length gL ::Int
-
-
-
-
 
 {-
 main::IO ()

@@ -10,18 +10,17 @@ module GollyFiles
 ,rleHead
 ,mcHead
 ,roundOut
+,patify
 ) where
 
 import System.IO
 import Data.Char
 import Data.List
 import Control.Monad
-import Debug.Trace
+import Grid
 
-traceThis:: (Show a) => a -> a
-traceThis x = trace (show x) x
-
-
+patify::([[Int]] -> [[Int]]) -> (Pattern -> Pattern) --grid opp to pattern op
+patify f p = Gr (f (gr p))
 
 readGeneric::[Char]-> IO (Pattern , IO() )
 readGeneric name = do
@@ -106,15 +105,6 @@ mcToData txt = dat
     lines_ =  drop 2  allLines
     dat = [[ (read x :: Int) | x <- (split ' ' row)] | row <- (take ((length lines_)-1) lines_)]
 
-split:: (Eq a) => a -> [a] -> [[a]]
-split s xs = splithelper s [] xs
-  where
-    splithelper:: (Eq a) => a -> [a] -> [a] -> [[a]]
-    splithelper s temp (x:xs)
-      | (s == x) = temp : (splithelper s [] xs)
-      | otherwise = splithelper s (temp ++ [x] ) xs
-    splithelper _ temp [] = [temp]
-
 dataToGolly:: [[Int]] -> Golly
 dataToGolly rows = last (buildList rows [] )
   where
@@ -143,23 +133,7 @@ depthAware Empty d = [[0 | _ <- sublist ] |  _ <- sublist ]
   where
     sublist = [1..(2^d)]
 
-squareup::[[[a]]] -> [[a]]
-squareup (tl:tr:bl:br:[]) = (zipWith (++) tl tr) ++ (zipWith (++) bl br)
 
-expand::[[Int]] -> [[Int]]
-expand dat = squareup [dat,newRight,newBot,newCorn]
-  where
-    vNow = length dat
-    hNow = length (dat!!0)
-    maxLen = max hNow vNow
-    minNewLength = next2 maxLen
-    rightExp = (minNewLength - hNow)
-    botExp = (minNewLength - vNow)
-    newRight = makeZeros rightExp vNow
-    newBot =  makeZeros hNow botExp
-    newCorn = makeZeros rightExp botExp
-    makeZeros::Int->Int->[[Int]]
-    makeZeros x y =  [[0 | _ <- [1..x]] |  _ <- [1..y] ]
 
 gridToGolly::[[Int]] -> Golly --doesn't work for non square grids WTF!!!!
 gridToGolly dat = helper (expand (roundOut dat))
@@ -183,11 +157,7 @@ gridToGolly dat = helper (expand (roundOut dat))
           bl = corner ls fr dat
           br = corner ls ls dat
 
-next2::Int->Int
-next2 r = 2^(ceilLog2 r)
 
-ceilLog2::Int->Int
-ceilLog2 r = head [n | n <-[1..] , (2^n)>=r ]
 
 gollyToData::Golly->[[Int]]
 gollyToData g = [snd ent | ent <- allEnts ]
@@ -250,7 +220,6 @@ rollingTallyTheTally ((n2,c2):xs) (n,c)
   | c2 == c = rollingTallyTheTally xs (n+n2,c)
   | otherwise = ((n,c):) $ rollingTallyTheTally xs (n2,c2)
 
-
 short:: [(Int,Char)] -> [Char]
 short ((n,c):ts)
   | n==1 = c:(short ts)
@@ -283,15 +252,6 @@ dnum::[Char] -> [Char] -> [Char]
 dnum num (c:cs)
   |isDigit c = dnum (num++[c]) cs
   |otherwise = (take (read num :: Int) (cycle [c])) ++ (unTally cs)
-
-roundOut::[[Int]]->[[Int]]
-roundOut dat = extended
-  where
-    newLen = maximum [length row | row <- dat]
-    extended = [extend newLen row | row <- dat]
-
-extend::Int->[Int]->[Int]
-extend n xs = xs ++ (take (n - (length xs)) (cycle [0]))
 
 od::Char->Int
 od '.' = 0
