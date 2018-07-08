@@ -34,42 +34,42 @@ main = run (do
   vc  (putStrLn (show fighter1) ) )
 
 readFighter :: [Char]-> CIO Fighter
-readFighter name = C (do
-  (pat,close) <- readGeneric name
+readFighter name = do
+  pat <- readGeneric name
   let tpat = Gr (trimGrid (gr pat))
   let h = length (gr tpat)
   let w = length ((gr tpat)!!0)
-  (p,periodClean) <- getPeriod pat
-  return (  (Fighter tpat ((split '.' name)!!0) h w p ) , close:periodClean ) )
+  p <- getPeriod pat
+  return (Fighter tpat ((split '.' name)!!0) h w p )
 
-getPeriod::Pattern -> IO (Int,[IO()])
+getPeriod::Pattern -> CIO Int
 getPeriod pat = do
-  (res,clean) <- (periodHelper pat (1,[]))
-  return (res,clean)
+  res<- (periodHelper pat 1)
+  return res
 
-periodHelper::Pattern -> (Int,[IO ()]) -> IO (Int,[IO ()])
-periodHelper pat (n,clean_) = do
-  (thisOne,clean) <- testn pat n
-  if thisOne then do
-    return (n,clean++clean_)
-  else do
-    out <- (periodHelper pat (n+1,clean++clean_) )
-    return out
+periodHelper::Pattern -> Int -> CIO Int
+periodHelper pat n = do
+    thisOne <- testn pat n
+    if thisOne then do
+      return n
+    else do
+      out <- periodHelper pat (n+1)
+      return out
 
-testn::Pattern -> Int -> IO (Bool,[IO()])
+testn::Pattern -> Int -> CIO Bool
 testn pat n = do
-  (new,clean) <- (stepPattern pat n)
-  return ((new == pat) , clean)
+  new <- (stepPattern pat n)
+  return (new == pat)
 
-stepPattern :: Pattern -> Int -> IO (Pattern,[IO ()])
+stepPattern :: Pattern -> Int -> CIO Pattern
 stepPattern pat1 n = do
-  names <- (getName 2)
-  writeFile (names!!0) (rleHead ++ (rle pat1))
-  callCommand (concat ["bgolly -q -q -a Generations -m ",show(n)," -o ",(names!!1)," ",(names!!0)])
-  (pat2,close) <- readGeneric (names!!1)
-  let rm1 = callCommand ("del "++(names!!0))
-  let rm2 = callCommand ("del  "++(names!!1))
-  return (pat2,[close,rm1,rm2])
+  names <- vc (getName 2)
+  vc ( writeFile (names!!0) (rleHead ++ (rle pat1)) )
+  vc ( callCommand (concat ["bgolly -q -q -a Generations -m ",show(n)," -o ",(names!!1)," ",(names!!0)]) )
+  pat2 <- readGeneric (names!!1)
+  qc ( callCommand ("del "++(names!!0)) )
+  qc ( callCommand ("del "++(names!!1)) )
+  return pat2
 
 getName:: Int -> IO [[Char]]
 getName count = do
@@ -100,15 +100,3 @@ boosts (l,r)
     gL = gr l ::[[Int]]
     hr = length gR ::Int
     hl = length gL ::Int
-
-{-
-main::IO ()
-main = do
-    args <- getArgs
-    (pat1,close1) <- readGeneric (args!!0)
-    (pat2,close2) <- readGeneric (args!!1)
-    let list = battlePatterns (pat1,pat2)
-    foldl (>>) (return ()) [writeFile (("battles/test"++show(ind))++".rle") (rleHead ++ (rle pat)) | (pat,ind) <-(zip list [0..]) ]
-    close1
-    close2
--}

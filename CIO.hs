@@ -2,13 +2,10 @@ module CIO
 (CIO (C)
 ,run
 ,vc
+,qc
 )where
 
-
-
-
 import System.IO
-
 
 data CIO a = C (IO (a , [IO ()]))
 
@@ -16,7 +13,6 @@ instance Functor CIO where
 	fmap f (C a) = C ( do
 				(x,cs) <- a
 				return (f x, cs) )
-
 
 instance Applicative CIO where
 	pure x = C (return (x,[]))
@@ -64,5 +60,8 @@ run::CIO () -> IO ()
 run (C a) = do
 	(x,cs) <- a
 	doAll cs
+
+qc::IO () -> CIO ()
+qc clean = C (do return ((), [clean] )  )
 
 main = run someCleanInts

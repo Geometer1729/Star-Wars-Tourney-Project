@@ -18,17 +18,23 @@ import Data.Char
 import Data.List
 import Control.Monad
 import Grid
+import CIO
+
 
 patify::([[Int]] -> [[Int]]) -> (Pattern -> Pattern) --grid opp to pattern op
 patify f p = Gr (f (gr p))
 
-readGeneric::[Char]-> IO (Pattern , IO() )
+readGeneric::[Char]-> CIO Pattern
 readGeneric name = do
-  handle <- openFile name ReadMode
-  contents <- hGetContents handle
-  let fileType= last (split '.' name)
-  if fileType == "rle" then return ((Rle contents) , hClose handle)
-  else if fileType == "mc" then return ((MC contents) , hClose handle)
+  handle <- vc ( openFile name ReadMode )
+  contents <-  vc ( hGetContents handle )
+  let fileType = last (split '.' name)
+  if fileType == "rle" then do
+    qc (hClose handle )
+    return (Rle contents)
+  else if fileType == "mc" then do
+    qc (hClose handle )
+    return (MC contents)
   else error "File type not supported"
 
 
