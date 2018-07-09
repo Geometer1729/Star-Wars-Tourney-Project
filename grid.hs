@@ -22,7 +22,6 @@ split s xs = splithelper s [] xs
       | otherwise = splithelper s (temp ++ [x] ) xs
     splithelper _ temp [] = [temp]
 
-
 trimGrid::[[Int]] ->[[Int]] -- Removes rows of all zeros
 trimGrid = trimVert . trimHorz . roundOut
   where

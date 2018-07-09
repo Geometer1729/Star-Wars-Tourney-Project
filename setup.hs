@@ -24,9 +24,6 @@ data Battle = Battle {
 ,y::Int
 }
 
-doAll::[IO()] -> IO ()
-doAll = foldl (>>) (return())
-
 main::IO ()
 main = run (do
   args <- vc getArgs
@@ -64,8 +61,8 @@ testn pat n = do
 stepPattern :: Pattern -> Int -> CIO Pattern
 stepPattern pat1 n = do
   names <- vc (getName 2)
-  vc ( writeFile (names!!0) (rleHead ++ (rle pat1)) )
-  vc ( callCommand (concat ["bgolly -q -q -a Generations -m ",show(n)," -o ",(names!!1)," ",(names!!0)]) )
+  vc ( writeFile (names!!0) ((rleHead 0 0 0 0) ++ (rle pat1)) )
+  vc (callCommand (concat ["bgolly -q -q -a Generations -m ",show(n)," -o ",(names!!1)," ",(names!!0),">/dev/null"]) )
   pat2 <- readGeneric (names!!1)
   qc ( callCommand ("del "++(names!!0)) )
   qc ( callCommand ("del "++(names!!1)) )

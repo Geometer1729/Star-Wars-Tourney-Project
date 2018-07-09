@@ -92,8 +92,8 @@ instance Eq Pattern where
 mcHead::[Char]
 mcHead = "[M2] (golly 3.1)\n#R 345/2/4\n"
 
-rleHead::[Char]
-rleHead = "#CXRLE Pos=-20,-11\nx = 0, y = 0, rule = 345/2/4\n"
+rleHead::Int -> Int -> Int -> Int ->  [Char]
+rleHead x y h w= concat [ "#CXRLE Pos=",show(x),",",show(y),"\nx = ",show(w),", y = ",show(h),", rule = 345/2/4\n" ]
 
 shw:: Int -> Golly -> [Char]
 shw depth (Block d b) = concat ["\n",(repList "    " depth),"B ",show(b)," ",show(d)]
@@ -139,8 +139,6 @@ depthAware Empty d = [[0 | _ <- sublist ] |  _ <- sublist ]
   where
     sublist = [1..(2^d)]
 
-
-
 gridToGolly::[[Int]] -> Golly --doesn't work for non square grids WTF!!!!
 gridToGolly dat = helper (expand (roundOut dat))
   where
@@ -162,8 +160,6 @@ gridToGolly dat = helper (expand (roundOut dat))
           tr = corner fr ls dat
           bl = corner ls fr dat
           br = corner ls ls dat
-
-
 
 gollyToData::Golly->[[Int]]
 gollyToData g = [snd ent | ent <- allEnts ]
